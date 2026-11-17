@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  --color-forest: #123D2B;
+  --color-tropic: #238B57;
+  --color-cream: #FFF9EC;
+  --color-gold: #F2BD45;
+  --color-charcoal: #202820;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Manrope", system-ui, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+html, body { overflow-x: clip; }
+body { @apply bg-cream text-charcoal font-sans antialiased; }
+h1, h2, h3, h4 { @apply font-display; letter-spacing: -0.02em; }
+
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold transition duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold; }
+@utility btn-gold { @apply btn bg-gold text-forest hover:bg-[#f7cd66] hover:-translate-y-0.5 shadow-[0_10px_30px_-10px_rgba(242,189,69,.7)]; }
+@utility btn-green { @apply btn bg-tropic text-white hover:bg-forest hover:-translate-y-0.5; }
+@utility btn-ghost { @apply btn border border-current/30 hover:border-current hover:bg-white/10; }
+@utility eyebrow { @apply text-xs font-bold uppercase tracking-[0.25em] text-tropic; }
+@utility card { @apply rounded-3xl bg-white shadow-[0_20px_50px_-30px_rgba(18,61,43,.35)]; }
+@utility container-x { @apply mx-auto w-full max-w-7xl px-5 sm:px-8; }
+
+.leaf-pattern {
+  background-image: radial-gradient(circle at 20% 20%, rgba(242,189,69,.18), transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(35,139,87,.45), transparent 50%);
+}
+.reveal { opacity: 0; transform: translateY(24px); }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; } }

@@ -1,0 +1,3 @@
+{
+  "rewrites": [{ "source": "/((?!parrot/|img/|assets/).*)", "destination": "/index.html" }]
+}
