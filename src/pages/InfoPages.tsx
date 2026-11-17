@@ -109,7 +109,7 @@ export function Legal({ kind }: { kind: 'privacy' | 'terms' }) {
         {privacy ? (
           <>
             <p>This demonstration site does not collect personal data on a server. Your demo cart and the animated-parrot setting are saved only in your own browser's local storage, and you can clear them at any time.</p>
-            <p>Newsletter and contact forms are validated in your browser and are not transmitted anywhere. Species photographs are loaded from Wikipedia / Wikimedia Commons, and fonts from Google Fonts; those services may receive standard request data such as your IP address.</p>
+            <p>Newsletter and contact forms are validated in your browser and are not transmitted anywhere. Fonts are loaded from Google Fonts; those services may receive standard request data such as your IP address.</p>
           </>
         ) : (
           <>

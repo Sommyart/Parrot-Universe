@@ -46,7 +46,7 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="container-x flex flex-col gap-2 py-6 text-xs text-cream/45 sm:flex-row sm:justify-between">
           <p>© {new Date().getFullYear()} Parrot Universe (demonstration project). Not a real business. No animals are sold.</p>
-          <p>Species photos via Wikipedia / Wikimedia Commons. Parrot animation from supplied footage.</p>
+          <p>Photography is AI-generated for this demo. Parrot animation from supplied footage.</p>
         </div>
       </div>
     </footer>
