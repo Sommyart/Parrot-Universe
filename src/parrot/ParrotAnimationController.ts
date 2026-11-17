@@ -36,7 +36,7 @@ const CLIP_META: Record<ClipName, ClipMeta> = {
   curious: { ax: 0.52, ay: 0.68, scale: 1 },
   landing: { ax: 0.5, ay: 0.68, scale: 1 },
   takeoff: { ax: 0.57, ay: 0.68, scale: 1 },
-  hover: { ax: 0.5, ay: 0.62, scale: 0.72 },
+  hover: { ax: 0.5, ay: 0.5, scale: 0.72 }, // clip is stabilised: body locked at frame centre
 }
 
 // Key moments inside the clips (seconds)
@@ -90,12 +90,12 @@ export class ParrotAnimationController {
   private H = 270
   private active: ClipLayer | null = null
   private pos = { x: -400, y: 200 }
-  private vel = { x: 0, y: 0 }
   private pointer = { x: -9999, y: -9999, clientX: -9999, clientY: -9999, inside: false, lastMove: 0 }
   private perch = { x: 0, y: 0, visible: true }
   private lastLandedAt = -Infinity
   private lastCuriousAt = -Infinity
   private nearSince = 0
+  private turnVotes = 0
   private autoWaypoints: { x: number; y: number }[] = []
   private facing = 1 // 1 = facing left (native), -1 = mirrored (facing right)
   private tilt = 0
@@ -295,7 +295,6 @@ export class ParrotAnimationController {
       if (!this.set('flying')) return
       this.autoWaypoints = autonomous ? this.makeWaypoints() : []
       this.pos = { x: window.scrollX + window.innerWidth * 0.5, y: window.scrollY - this.H * 0.3 }
-      this.vel = { x: 0, y: 200 }
       this.show('hover', 0.2, 0)
       this.o.layers.hover.video.loop = true
       return
@@ -310,7 +309,6 @@ export class ParrotAnimationController {
   private fly() {
     if (!this.set('flying')) return
     this.pos = { x: this.perch.x + TAKEOFF_LEAVE_OFFSET.x * this.W, y: this.perch.y + TAKEOFF_LEAVE_OFFSET.y * this.H }
-    this.vel = { x: -120, y: -80 }
     this.preseek('landing', T.landingJoin)
     this.show('hover', 0.18, 0)
     this.o.layers.hover.video.loop = true
@@ -446,12 +444,13 @@ export class ParrotAnimationController {
       // keep cursor position in page coordinates in sync while the page scrolls
       const cx = this.pointer.clientX + window.scrollX
       const cy = this.pointer.clientY + window.scrollY
-      if (idleFor > 1200 || !this.pointer.inside) {
-        // cursor is resting: circle around it in a lazy loop
-        const a = this.time * 0.9
-        target = { x: cx + Math.cos(a) * 150, y: cy - 60 + Math.sin(a) * 70 }
+      if (idleFor > 3000 || !this.pointer.inside) {
+        // cursor has been resting a while: drift in a small, gentle loop beside it
+        const a = (idleFor - 3000) / 1000 * 0.8
+        target = { x: cx + side * 80 + Math.cos(a) * 40, y: cy - 20 + Math.sin(a) * 25 }
       } else {
-        target = { x: cx + side * 90, y: cy - 70 }
+        // fixed spot just beside the cursor, level with it
+        target = { x: cx + side * 80, y: cy - 20 }
       }
     }
     // clamp into the visible viewport
@@ -459,24 +458,23 @@ export class ParrotAnimationController {
     target.x = gsap.utils.clamp(window.scrollX + m, window.scrollX + window.innerWidth - m, target.x)
     target.y = gsap.utils.clamp(window.scrollY + m + 70, window.scrollY + window.innerHeight - m, target.y)
 
-    // critically-damped-ish follow for a smooth, delayed chase
-    const k = this.autoWaypoints.length ? 2.2 : 3.2
-    const ax = (target.x - this.pos.x) * k * k - this.vel.x * 2 * k
-    const ay = (target.y - this.pos.y) * k * k - this.vel.y * 2 * k
-    this.vel.x += ax * dt
-    this.vel.y += ay * dt
-    const speed = Math.hypot(this.vel.x, this.vel.y)
-    const max = 900
-    if (speed > max) { this.vel.x *= max / speed; this.vel.y *= max / speed }
-    this.pos.x += this.vel.x * dt
-    this.pos.y += this.vel.y * dt + Math.sin(this.time * 7) * 0.35
+    // Direct follow: close the gap quickly with no overshoot, so Ruby stays aligned with the cursor.
+    const follow = this.autoWaypoints.length ? 2.5 : 10
+    const prevX = this.pos.x
+    const t = 1 - Math.exp(-dt * follow)
+    this.pos.x += (target.x - this.pos.x) * t
+    this.pos.y += (target.y - this.pos.y) * t
+    const vx = (this.pos.x - prevX) / Math.max(dt, 0.001)
 
-    if (Math.abs(this.vel.x) > 40) {
-      const want = this.vel.x > 0 ? -1 : 1
-      if (want !== this.facing) this.turn(want)
-    }
-    const targetTilt = gsap.utils.clamp(-16, 16, this.vel.x * 0.025 + this.vel.y * 0.012 * -this.facing)
-    this.tilt += (targetTilt - this.tilt) * (1 - Math.exp(-dt * 5))
+    // Turn around only on a clear, sustained change of direction (no flicker).
+    const want = vx > 0 ? -1 : 1
+    if (Math.abs(vx) > 160 && want !== this.facing) {
+      this.turnVotes += dt
+      if (this.turnVotes > 0.12) { this.turn(want); this.turnVotes = 0 }
+    } else this.turnVotes = 0
+    // Small bank into horizontal movement only.
+    const targetTilt = gsap.utils.clamp(-10, 10, -vx * 0.012 * this.facing)
+    this.tilt += (targetTilt - this.tilt) * (1 - Math.exp(-dt * 8))
   }
 
   // ---------------------------------------------------------------- helpers
