@@ -25,5 +25,5 @@ React + Vite + TypeScript, Tailwind CSS v4, GSAP, Lucide React, React Router.
 - Toggle the parrot with the bird icon in the navbar (saved in localStorage).
 
 ## Photos
-Species photos load at runtime from Wikipedia / Wikimedia Commons (real photographs);
-a branded placeholder shows if they can't load.
+Photos: put species photos in public/img/species/ and accessory photos in public/img/accessories/ (.jpg). Wikipedia is used only as a fallback.
+

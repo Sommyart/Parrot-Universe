@@ -47,8 +47,8 @@ const ALLOWED: Record<ParrotState, ParrotState[]> = {
   loading: ['arrival', 'idle', 'static'],
   arrival: ['landing', 'static'],
   landing: ['idle', 'static'],
-  idle: ['curious', 'takeoff', 'static'],
-  curious: ['idle', 'takeoff', 'static'],
+  idle: ['curious', 'takeoff', 'flying', 'static'],
+  curious: ['idle', 'takeoff', 'flying', 'static'],
   takeoff: ['flying', 'static'],
   flying: ['returning', 'static'],
   returning: ['landing', 'static'],
@@ -87,7 +87,7 @@ export class ParrotAnimationController {
   private lastLandedAt = -Infinity
   private lastCuriousAt = -Infinity
   private nearSince = 0
-  private flightStartedAt = 0
+  private leftAt = 0
   private autoWaypoints: { x: number; y: number }[] = []
   private facing = 1 // 1 = facing left (native), -1 = mirrored (facing right)
   private tilt = 0
@@ -261,8 +261,17 @@ export class ParrotAnimationController {
 
   private takeoff(autonomous = false) {
     const now = performance.now()
-    if (now - this.lastLandedAt < 4000) return // cooldown, avoids takeoff/landing ping-pong
-    if (!this.perch.visible) return
+    if (now - this.lastLandedAt < 2500) return // short rest on the perch after landing
+    if (!this.perch.visible) {
+      // perch scrolled away: fly in from the top edge instead of playing the takeoff clip
+      if (!this.set('flying')) return
+      this.autoWaypoints = autonomous ? this.makeWaypoints() : []
+      this.pos = { x: window.scrollX + window.innerWidth * 0.5, y: window.scrollY - this.H * 0.3 }
+      this.vel = { x: 0, y: 200 }
+      this.show('hover', 0.2, 0)
+      this.o.layers.hover.video.loop = true
+      return
+    }
     if (!this.set('takeoff')) return
     this.autoWaypoints = autonomous ? this.makeWaypoints() : []
     this.show('takeoff', 0.25, T.takeoffStart)
@@ -272,7 +281,6 @@ export class ParrotAnimationController {
 
   private fly() {
     if (!this.set('flying')) return
-    this.flightStartedAt = performance.now()
     this.pos = { x: this.perch.x + TAKEOFF_LEAVE_OFFSET.x * this.W, y: this.perch.y + TAKEOFF_LEAVE_OFFSET.y * this.H }
     this.vel = { x: -120, y: -80 }
     this.preseek('landing', T.landingJoin)
@@ -366,7 +374,7 @@ export class ParrotAnimationController {
     const body = this.bodyPoint()
     const now = performance.now()
     let targetTilt = Math.sin(this.time * 1.3) * 1.2 // gentle breathing sway
-    if (!this.o.isTouch && this.pointer.inside && this.perch.visible) {
+    if (!this.o.isTouch && this.pointer.inside) {
       const dx = this.pointer.x - body.x
       const dy = this.pointer.y - body.y
       const dist = Math.hypot(dx, dy)
@@ -380,6 +388,8 @@ export class ParrotAnimationController {
         if (!this.nearSince) this.nearSince = now
         if (now - this.nearSince > 220) this.takeoff(false)
       } else this.nearSince = 0
+      // Follow mode: as soon as the visitor moves the cursor, Ruby takes off to join it.
+      if (now - this.pointer.lastMove < 250 && now - this.lastLandedAt > 2500) this.takeoff(false)
     }
     this.tilt += (targetTilt - this.tilt) * (1 - Math.exp(-dt * 4))
   }
@@ -401,10 +411,22 @@ export class ParrotAnimationController {
       if (!this.autoWaypoints.length) return this.returnHome()
     } else {
       const idleFor = now - this.pointer.lastMove
-      if (!this.pointer.inside || idleFor > 2200 || now - this.flightStartedAt > 14000) return this.returnHome()
+      if (!this.pointer.inside) {
+        if (!this.leftAt) this.leftAt = now
+        if (now - this.leftAt > 3000 && this.perch.visible) return this.returnHome()
+      } else this.leftAt = 0
       // Hover beside the cursor rather than on top of it, so content stays readable.
       const side = this.pointer.clientX > window.innerWidth / 2 ? -1 : 1
-      target = { x: this.pointer.x + side * 90, y: this.pointer.y - 70 }
+      // keep cursor position in page coordinates in sync while the page scrolls
+      const cx = this.pointer.clientX + window.scrollX
+      const cy = this.pointer.clientY + window.scrollY
+      if (idleFor > 1200 || !this.pointer.inside) {
+        // cursor is resting: circle around it in a lazy loop
+        const a = this.time * 0.9
+        target = { x: cx + Math.cos(a) * 150, y: cy - 60 + Math.sin(a) * 70 }
+      } else {
+        target = { x: cx + side * 90, y: cy - 70 }
+      }
     }
     // clamp into the visible viewport
     const m = this.H * 0.35
