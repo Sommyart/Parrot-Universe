@@ -37,7 +37,7 @@ function Toast() {
 
 export default function App() {
   return (
-    <>
+    <div className="relative overflow-x-hidden">
       <ScrollManager />
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-full focus:bg-gold focus:px-4 focus:py-2">Skip to content</a>
       <Navbar />
@@ -60,6 +60,6 @@ export default function App() {
       <Footer />
       <Toast />
       <FeatherBurst />
-    </>
+    </div>
   )
 }

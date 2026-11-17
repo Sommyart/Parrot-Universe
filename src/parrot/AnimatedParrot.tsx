@@ -82,7 +82,7 @@ export default function AnimatedParrot({ enabled }: { enabled: boolean }) {
     }
     const stageWidth = () => {
       const vw = window.innerWidth
-      if (vw < 640) return Math.min(520, vw * 1.05)
+      if (vw < 640) return Math.min(520, vw * 0.95)
       if (vw < 1024) return 520
       return Math.min(940, Math.max(600, vw * 0.56))
     }
