@@ -54,6 +54,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return ex ? prev.map((l) => (l.id === id ? { ...l, qty: Math.min(99, l.qty + qty) } : l)) : [...prev, { id, qty }]
         })
         setToast(`${findItem(id)?.name ?? 'Item'} added to your demo cart`)
+        const cheers = ['Great choice!', 'Ooh, lovely!', 'Into the cart!', 'Squawk! Nice pick!']
+        window.dispatchEvent(new CustomEvent('parrot:cheer', { detail: cheers[Math.floor(Math.random() * cheers.length)] }))
       },
       remove: (id) => setLines((prev) => prev.filter((l) => l.id !== id)),
       setQty: (id, qty) => setLines((prev) => (qty <= 0 ? prev.filter((l) => l.id !== id) : prev.map((l) => (l.id === id ? { ...l, qty: Math.min(99, qty) } : l)))),

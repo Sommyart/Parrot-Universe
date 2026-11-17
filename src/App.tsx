@@ -1,6 +1,7 @@
 import { CheckCircle2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
+import FeatherBurst from './components/FeatherBurst'
 import Footer from './components/Footer'
 import Navbar from './components/Navbar'
 import { useStore } from './context/StoreContext'
@@ -58,6 +59,7 @@ export default function App() {
       </main>
       <Footer />
       <Toast />
+      <FeatherBurst />
     </>
   )
 }

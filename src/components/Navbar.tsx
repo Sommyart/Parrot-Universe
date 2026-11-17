@@ -1,5 +1,6 @@
 import { Bird, Menu, ShoppingBag, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import gsap from 'gsap'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useStore } from '../context/StoreContext'
 import Logo from './Logo'
@@ -18,6 +19,25 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const { pathname } = useLocation()
   const overHero = pathname === '/' && !scrolled
+  const cartRef = useRef<HTMLAnchorElement>(null)
+  const barRef = useRef<HTMLDivElement>(null)
+  const prevCount = useRef(count)
+  useEffect(() => {
+    if (count > prevCount.current && cartRef.current) {
+      gsap.fromTo(cartRef.current, { scale: 1 }, { keyframes: [{ scale: 1.35, rotate: -12, duration: 0.15 }, { scale: 0.9, rotate: 8, duration: 0.15 }, { scale: 1, rotate: 0, duration: 0.3, ease: 'elastic.out(1,0.4)' }] })
+    }
+    prevCount.current = count
+  }, [count])
+  useEffect(() => {
+    const on = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight
+      if (barRef.current) barRef.current.style.transform = `scaleX(${max > 0 ? window.scrollY / max : 0})`
+    }
+    on()
+    window.addEventListener('scroll', on, { passive: true })
+    window.addEventListener('resize', on)
+    return () => { window.removeEventListener('scroll', on); window.removeEventListener('resize', on) }
+  }, [pathname])
 
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 40)
@@ -29,6 +49,7 @@ export default function Navbar() {
 
   return (
     <header className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${overHero ? 'bg-transparent py-5' : 'bg-cream/90 py-3 shadow-[0_10px_30px_-20px_rgba(18,61,43,.5)] backdrop-blur-md'}`}>
+      <div ref={barRef} aria-hidden="true" className="absolute inset-x-0 top-0 h-1 origin-left bg-gradient-to-r from-[#d7263d] via-gold to-[#2f7fc1]" style={{ transform: 'scaleX(0)' }} />
       <nav className="container-x flex items-center justify-between gap-4" aria-label="Main">
         <Link to="/" aria-label="Parrot Universe home"><Logo light={overHero} /></Link>
         <ul className="hidden items-center gap-1 lg:flex">
@@ -50,7 +71,7 @@ export default function Navbar() {
             <Bird className="h-5 w-5" />
             <span className="sr-only">Toggle animated parrot</span>
           </button>
-          <Link to="/cart" className={`relative rounded-full p-2.5 transition ${overHero ? 'text-cream hover:bg-white/10' : 'text-forest hover:bg-forest/5'}`} aria-label={`Cart, ${count} items`}>
+          <Link ref={cartRef} to="/cart" className={`relative rounded-full p-2.5 transition ${overHero ? 'text-cream hover:bg-white/10' : 'text-forest hover:bg-forest/5'}`} aria-label={`Cart, ${count} items`}>
             <ShoppingBag className="h-5 w-5" />
             {count > 0 && <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-gold px-1 text-[11px] font-bold text-forest">{count}</span>}
           </Link>

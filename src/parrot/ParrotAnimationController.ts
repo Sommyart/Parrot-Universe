@@ -13,6 +13,14 @@ import gsap from 'gsap'
  * The "mover" point means: the bird's feet while perched, the bird's body while flying.
  */
 
+const FACTS = [
+  'Macaws can live for decades!',
+  'My beak can crack hard nuts.',
+  'I love fresh fruit and veggies.',
+  'Parrots are super smart birds.',
+  'Scarlet Macaws come from Central and South America.',
+]
+
 export type ClipName = 'hover' | 'curious' | 'takeoff' | 'landing'
 export type ParrotState = 'loading' | 'arrival' | 'landing' | 'idle' | 'curious' | 'takeoff' | 'flying' | 'returning' | 'static'
 
@@ -72,6 +80,7 @@ export interface ControllerOptions {
   isTouch: boolean
   reducedMotion: boolean
   onStateChange?: (s: ParrotState) => void
+  bubble?: HTMLElement
 }
 
 export class ParrotAnimationController {
@@ -87,7 +96,6 @@ export class ParrotAnimationController {
   private lastLandedAt = -Infinity
   private lastCuriousAt = -Infinity
   private nearSince = 0
-  private leftAt = 0
   private autoWaypoints: { x: number; y: number }[] = []
   private facing = 1 // 1 = facing left (native), -1 = mirrored (facing right)
   private tilt = 0
@@ -132,7 +140,7 @@ export class ParrotAnimationController {
       const hit = Math.hypot(px - b.x, py - b.y) < Math.max(70, this.H * 0.35)
       if (hit && (this.state === 'idle' || this.state === 'curious')) {
         if (e.pointerType === 'touch' || this.o.isTouch) this.takeoff(true)
-        else this.react()
+        else { this.react(); this.say(FACTS[Math.floor(Math.random() * FACTS.length)], 3500) }
       }
     }
     const onVis = () => {
@@ -198,9 +206,27 @@ export class ParrotAnimationController {
   }
 
   // ---------------------------------------------------------------- states
+  private bubbleTween: gsap.core.Timeline | null = null
+  /** Show a short speech bubble above Ruby. */
+  say(text: string, ms = 2200) {
+    const b = this.o.bubble
+    if (!b || this.o.reducedMotion || this.state === 'static') return
+    b.textContent = text
+    this.bubbleTween?.kill()
+    this.bubbleTween = gsap.timeline()
+      .fromTo(b, { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: 'back.out(2)' })
+      .to(b, { opacity: 0, scale: 0.8, duration: 0.3, delay: ms / 1000 })
+  }
+
   private set(to: ParrotState): boolean {
     if (to === this.state) return true
     if (!ALLOWED[this.state].includes(to)) return false
+    const lines: Partial<Record<ParrotState, string[]>> = {
+      takeoff: ['Squawk!', 'Wheee!', 'Follow you!', 'Up we go!'],
+      returning: ['Nap time...', 'Back to my perch!', 'Phew, tired wings!'],
+    }
+    const pool = lines[to]
+    if (pool) this.say(pool[Math.floor(Math.random() * pool.length)])
     this.state = to
     this.o.mover.dataset.state = to
     this.o.onStateChange?.(to)
@@ -233,8 +259,10 @@ export class ParrotAnimationController {
     this.show('landing', 0.22, T.landingJoin)
   }
 
+  private greeted = false
   private idle() {
     if (!this.set('idle')) return
+    if (!this.greeted) { this.greeted = true; this.say(this.o.isTouch ? "Hi, I'm Ruby! Tap me!" : "Hi, I'm Ruby! Move your mouse!", 3200) }
     this.lastLandedAt = performance.now()
     this.show('curious', 0.45, 0)
     this.o.layers.curious.video.loop = true
@@ -411,10 +439,8 @@ export class ParrotAnimationController {
       if (!this.autoWaypoints.length) return this.returnHome()
     } else {
       const idleFor = now - this.pointer.lastMove
-      if (!this.pointer.inside) {
-        if (!this.leftAt) this.leftAt = now
-        if (now - this.leftAt > 3000 && this.perch.visible) return this.returnHome()
-      } else this.leftAt = 0
+      // Cursor inactive (or outside the window) for 10 seconds: fly back to the perch.
+      if (idleFor > 10000) return this.returnHome()
       // Hover beside the cursor rather than on top of it, so content stays readable.
       const side = this.pointer.clientX > window.innerWidth / 2 ? -1 : 1
       // keep cursor position in page coordinates in sync while the page scrolls
@@ -456,6 +482,10 @@ export class ParrotAnimationController {
   // ---------------------------------------------------------------- helpers
   private applyTransform() {
     if (this.state === 'arrival' || this.state === 'returning' || this.state === 'landing') this.flipVisual = this.facing
+    if (this.o.bubble) {
+      const b = this.bodyPoint()
+      gsap.set(this.o.bubble, { x: b.x, y: b.y - this.H * 0.3 })
+    }
     gsap.set(this.o.mover, { x: this.pos.x, y: this.pos.y, rotation: this.tilt, scaleX: this.flipVisual === 0 ? 0.001 : this.flipVisual })
   }
 
@@ -510,6 +540,12 @@ export class ParrotAnimationController {
   private killTimeline() {
     this.tl?.kill()
     this.tl = null
+  }
+
+  /** React to things happening on the site (e.g. add to cart). */
+  cheer(text: string) {
+    this.say(text)
+    if (this.state === 'idle') { this.lastCuriousAt = 0; this.react() }
   }
 
   /** Mobile: gentle autonomous behaviour (a small curious moment every so often). */

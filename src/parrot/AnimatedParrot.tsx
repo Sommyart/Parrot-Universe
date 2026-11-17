@@ -39,6 +39,7 @@ function makeChromaRenderer(video: HTMLVideoElement, canvas: HTMLCanvasElement) 
 
 export default function AnimatedParrot({ enabled }: { enabled: boolean }) {
   const moverRef = useRef<HTMLDivElement>(null)
+  const bubbleRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const layerRefs = useRef<Partial<Record<ClipName, HTMLDivElement | null>>>({})
   const videoRefs = useRef<Partial<Record<ClipName, HTMLVideoElement | null>>>({})
@@ -86,7 +87,9 @@ export default function AnimatedParrot({ enabled }: { enabled: boolean }) {
       return Math.min(940, Math.max(600, vw * 0.56))
     }
 
-    const ctrl = new ParrotAnimationController({ mover, stage, layers, getPerch, stageWidth, isTouch, reducedMotion, onStateChange: setState })
+    const ctrl = new ParrotAnimationController({ mover, stage, layers, getPerch, stageWidth, isTouch, reducedMotion, onStateChange: setState, bubble: bubbleRef.current ?? undefined })
+    const onAdd = (e: Event) => ctrl.cheer((e as CustomEvent<string>).detail || 'Great choice!')
+    window.addEventListener('parrot:cheer', onAdd)
     ;(window as unknown as { __parrot?: ParrotAnimationController }).__parrot = ctrl
 
     // Preload, then start once the arrival clips can play. Fallback to a still if anything fails.
@@ -108,6 +111,7 @@ export default function AnimatedParrot({ enabled }: { enabled: boolean }) {
       clearInterval(nudgeTimer)
       need.forEach((v) => v.removeEventListener('canplaythrough', onReady))
       CLIPS.forEach((n) => layers[n].video.removeEventListener('error', onError))
+      window.removeEventListener('parrot:cheer', onAdd)
       ctrl.destroy()
       delete (window as unknown as { __parrot?: unknown }).__parrot
     }
@@ -117,6 +121,7 @@ export default function AnimatedParrot({ enabled }: { enabled: boolean }) {
 
   return (
     <div aria-hidden="true" className="pointer-events-none absolute left-0 top-0 z-40 h-0 w-0 select-none" data-testid="parrot-layer">
+      <div ref={bubbleRef} className="absolute left-0 top-0 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-2xl rounded-bl-sm bg-white px-3.5 py-2 text-sm font-bold text-forest opacity-0 shadow-xl ring-2 ring-gold" style={{ willChange: 'transform' }} />
       <div ref={moverRef} className="absolute left-0 top-0 will-change-transform" data-state={state}>
         <div ref={stageRef} className="relative">
           {CLIPS.map((name) => (

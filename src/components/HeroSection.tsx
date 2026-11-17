@@ -57,10 +57,10 @@ export default function HeroSection() {
             <Link to="/about" className="btn-ghost text-cream">Discover Our Story</Link>
           </div>
           <p data-hero-in className="mt-10 hidden items-center gap-2 text-sm text-cream/55 sm:flex">
-            <MousePointer2 className="h-4 w-4 text-gold" /> Meet Ruby, our Scarlet Macaw. Move your cursor close to her perch.
+            <MousePointer2 className="h-4 w-4 text-gold" /> Meet Ruby, our Scarlet Macaw. Move your mouse and she'll follow. Rest it for 10 seconds and she flies home.
           </p>
           <p data-hero-in className="mt-8 flex items-center gap-2 text-sm text-cream/55 sm:hidden">
-            <Hand className="h-4 w-4 text-gold" /> Tap Ruby, our Scarlet Macaw, to see her fly.
+            <Hand className="h-4 w-4 text-gold" /> Tap Ruby, our Scarlet Macaw, to see her fly. Tap anywhere for feathers!
           </p>
         </div>
 

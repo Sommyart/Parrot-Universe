@@ -4,10 +4,25 @@ import { useStore } from '../context/StoreContext'
 import { formatPrice, type Parrot } from '../data/products'
 import WikiImage from './WikiImage'
 
+function tilt(e: React.PointerEvent<HTMLElement>) {
+  if (e.pointerType !== 'mouse' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  const el = e.currentTarget
+  const r = el.getBoundingClientRect()
+  const x = (e.clientX - r.left) / r.width - 0.5
+  const y = (e.clientY - r.top) / r.height - 0.5
+  el.style.transform = `perspective(900px) rotateX(${(-y * 7).toFixed(2)}deg) rotateY(${(x * 9).toFixed(2)}deg) translateY(-6px)`
+  el.style.setProperty('--gx', `${(x + 0.5) * 100}%`)
+  el.style.setProperty('--gy', `${(y + 0.5) * 100}%`)
+}
+function untilt(e: React.PointerEvent<HTMLElement>) {
+  e.currentTarget.style.transform = ''
+}
+
 export default function ProductCard({ p }: { p: Parrot }) {
   const { add } = useStore()
   return (
-    <article className="card group reveal flex flex-col overflow-hidden transition duration-500 hover:-translate-y-1.5 hover:shadow-[0_30px_60px_-30px_rgba(18,61,43,.55)]">
+    <article onPointerMove={tilt} onPointerLeave={untilt} className="card group reveal relative flex flex-col overflow-hidden transition-[transform,box-shadow] duration-300 ease-out hover:shadow-[0_30px_60px_-30px_rgba(18,61,43,.55)]">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" style={{ background: 'radial-gradient(circle at var(--gx,50%) var(--gy,50%), rgba(255,255,255,.35), transparent 45%)' }} />
       <Link to={`/parrots/${p.id}`} className="relative block aspect-[4/3.4]" aria-label={`View ${p.name}`}>
         <WikiImage title={p.wikiTitle} alt={`${p.name} (${p.scientificName})`} accent={p.accent} className="h-full w-full" imgClassName="group-hover:scale-105" width={700} />
         <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-forest backdrop-blur"><Ruler className="h-3 w-3" />{p.size}</span>
